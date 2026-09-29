@@ -6,7 +6,6 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const UDP_PORT = process.env.UDP_PORT || 8080;
 const SET_KEY = process.env.SET_KEY || '';
 const DATA_DIR = process.env.DATA_DIR || '/data';
 const DATA_FILE = path.join(DATA_DIR, 'hosts.json');
@@ -276,10 +275,9 @@ function proxyHttp(req, res, host, body) {
   });
 }
 
-// ===== HTTP server =====
+// ===== HTTP + WebSocket server =====
 const server = http.createServer(app);
 
-// WS upgrade untuk VPN
 server.on('upgrade', (req, socket, head) => {
   if (backendHosts.length === 0) {
     socket.destroy();
@@ -348,20 +346,6 @@ function proxyUpgrade(req, socket, head, host, onFail) {
 }
 
 server.listen(PORT, () => console.log(`[VPN] Listening on ${PORT}`));
-
-// ===== Auto-start UDP relay di port terpisah =====
-if (process.env.DISABLE_UDP !== '1') {
-  try {
-    const { startRelay } = require('./udp-relay');
-    startRelay({ listenAddress: { host: '0.0.0.0', port: UDP_PORT } })
-      .then(({ cfg }) =>
-        console.log(`[UDP] Relay listening on ${cfg.listenAddress.port}${cfg.wsPath}`)
-      )
-      .catch((e) => console.error('[UDP] failed:', e.message));
-  } catch (e) {
-    console.error('[UDP] module not found:', e.message);
-  }
-}
 
 // ===== UI =====
 function UI() {
